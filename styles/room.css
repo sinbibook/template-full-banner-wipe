@@ -1121,7 +1121,7 @@
 
     /* 슬라이더 섹션만 좌우 패딩 제거 */
     .room-hero-section {
-        height: 65vh; /* 모바일에서는 65vh */
+        height: 70vh; /* 모바일에서는 70vh */
         min-height: 400px;
         padding-left: 0;
         padding-right: 0;
@@ -1136,7 +1136,7 @@
 
     .room-name-section {
         display: block !important; /* 모바일에서 강제로 표시 */
-        padding: 40px 20px 30px; /* 모바일 패딩 */
+        padding: 10px 20px 0px;
         background: #e6f3ff;
     }
 

@@ -123,14 +123,13 @@ class IndexMapper extends BaseDataMapper {
     /**
      * Video 엘리먼트 생성 헬퍼
      */
-    _createVideoElement(url, extraAttrs = {}) {
+    _createVideoElement(url) {
         const videoEl = document.createElement('video');
         videoEl.src = url;
         videoEl.autoplay = true;
         videoEl.muted = true;
         videoEl.loop = true;
         videoEl.playsInline = true;
-        Object.entries(extraAttrs).forEach(([k, v]) => videoEl.setAttribute(k, v));
         return videoEl;
     }
 
@@ -178,10 +177,8 @@ class IndexMapper extends BaseDataMapper {
         if (mediaType === 'video') {
             this.mapHeroVideo(heroData.videos || []);
         } else {
-            if (heroData.images && Array.isArray(heroData.images)) {
-                window.heroImageData = { images: heroData.images };
-                this.mapHeroSlider(heroData.images);
-            }
+            window.heroImageData = { images: heroData.images || [] };
+            this.mapHeroSlider(heroData.images || []);
         }
     }
 
@@ -192,6 +189,8 @@ class IndexMapper extends BaseDataMapper {
         const sliderContainer = this.safeSelect('[data-hero-slider]');
         if (!sliderContainer) return;
 
+        // 슬라이더 재초기화 방지 (reinitializeSliders가 덮어쓰지 않도록)
+        window.heroImageData = null;
         sliderContainer.innerHTML = '';
 
         const selectedVideo = this._getSelectedVideo(videos);
@@ -307,11 +306,26 @@ class IndexMapper extends BaseDataMapper {
 
         // mediaType 기반 video/image 분기
         const mediaType = essenceData.mediaType || 'image';
+        this._resetEssenceLayout();
         if (mediaType === 'video') {
             this.initEssenceVideo(essenceData.videos || []);
         } else {
             this.initEssenceImages(essenceData.images || []);
         }
+    }
+
+    /**
+     * Essence 레이아웃 초기화 (모드 전환 시 공통 cleanup)
+     */
+    _resetEssenceLayout() {
+        const essenceImage = this.safeSelect('.essence-image');
+        if (essenceImage) {
+            essenceImage.querySelectorAll('.essence-video').forEach(v => v.remove());
+        }
+        const thumbnails = this.safeSelect('.essence-thumbnails');
+        const sliderContainer = this.safeSelect('.essence-slider-container');
+        if (thumbnails) thumbnails.style.display = '';
+        if (sliderContainer) sliderContainer.style.display = '';
     }
 
     /**
@@ -321,12 +335,7 @@ class IndexMapper extends BaseDataMapper {
     initEssenceVideo(videos) {
         const sliderContainer = this.safeSelect('.essence-slider-container');
         const thumbnails = this.safeSelect('.essence-thumbnails');
-
-        // 기존 video 제거 (모드 전환 시 cleanup)
         const essenceImage = this.safeSelect('.essence-image');
-        if (essenceImage) {
-            essenceImage.querySelectorAll('.essence-video').forEach(v => v.remove());
-        }
 
         if (thumbnails) thumbnails.style.display = 'none';
         if (sliderContainer) sliderContainer.style.display = 'none';
@@ -372,7 +381,7 @@ class IndexMapper extends BaseDataMapper {
             } else {
                 // 객체 배열인 경우 (API 데이터)
                 normalizedImages = images
-                    .filter(img => img.isSelected !== false)
+                    .filter(img => img.isSelected === true)
                     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
                     .map(img => ({ url: img.url, description: img.description || '' }));
             }
@@ -419,17 +428,17 @@ class IndexMapper extends BaseDataMapper {
         if (mainImg && finalImages.length > 2) {
             mainImg.src = finalImages[2].url;
             mainImg.alt = useEmptyImage ? '이미지 없음' : this.sanitizeText(finalImages[2].description, '에센스 이미지');
-            if (useEmptyImage) mainImg.classList.add('empty-image-placeholder');
+            mainImg.classList.toggle('empty-image-placeholder', useEmptyImage);
         }
         if (thumb1 && finalImages.length > 0) {
             thumb1.src = finalImages[0].url;
             thumb1.alt = useEmptyImage ? '이미지 없음' : this.sanitizeText(finalImages[0].description, '에센스 이미지');
-            if (useEmptyImage) thumb1.classList.add('empty-image-placeholder');
+            thumb1.classList.toggle('empty-image-placeholder', useEmptyImage);
         }
         if (thumb2 && finalImages.length > 1) {
             thumb2.src = finalImages[1].url;
             thumb2.alt = useEmptyImage ? '이미지 없음' : this.sanitizeText(finalImages[1].description, '에센스 이미지');
-            if (useEmptyImage) thumb2.classList.add('empty-image-placeholder');
+            thumb2.classList.toggle('empty-image-placeholder', useEmptyImage);
         }
 
         // 이미지 로드 후 슬라이더 초기화
@@ -459,19 +468,13 @@ class IndexMapper extends BaseDataMapper {
 
         // 데이터가 없어도 기본 텍스트라도 보이도록 처리
         if (!galleryData) {
-            // 타이틀 매핑 (fallback)
             const titleElement = this.safeSelect('[data-gallery-title]');
-            if (titleElement) {
-                titleElement.textContent = '갤러리';
-            }
+            if (titleElement) titleElement.textContent = '갤러리';
 
-            // 설명 매핑 (fallback)
             const descElement = this.safeSelect('[data-gallery-description]');
-            if (descElement) {
-                descElement.textContent = '이미지가 준비 중입니다.';
-            }
+            if (descElement) descElement.textContent = '이미지가 준비 중입니다.';
 
-            // 갤러리 아이템 매핑 (빈 배열 → isDemo 체크로 empty-image 또는 fallback)
+            this._resetGalleryLayout();
             this.mapGalleryItems([]);
             return;
         }
@@ -490,12 +493,25 @@ class IndexMapper extends BaseDataMapper {
 
         // mediaType 기반 video/image 분기
         const mediaType = galleryData.mediaType || 'image';
+        this._resetGalleryLayout();
         if (mediaType === 'video') {
             this.mapGalleryVideo(galleryData.videos || []);
         } else {
-            const images = galleryData.images && Array.isArray(galleryData.images) ? galleryData.images : [];
-            this.mapGalleryItems(images);
+            this.mapGalleryItems(galleryData.images || []);
         }
+    }
+
+    /**
+     * Gallery 레이아웃 초기화 (모드 전환 시 공통 cleanup)
+     */
+    _resetGalleryLayout() {
+        const galleryGrid = this.safeSelect('[data-gallery-grid]');
+        if (!galleryGrid) return;
+        const container = galleryGrid.closest('.gallery-container');
+        if (container) {
+            container.querySelectorAll('.gallery-video-container').forEach(v => v.remove());
+        }
+        galleryGrid.style.display = '';
     }
 
     /**
@@ -505,12 +521,7 @@ class IndexMapper extends BaseDataMapper {
         const galleryGrid = this.safeSelect('[data-gallery-grid]');
         if (!galleryGrid) return;
 
-        // 기존 video 제거 (모드 전환 시 cleanup)
         const container = galleryGrid.closest('.gallery-container');
-        if (container) {
-            container.querySelectorAll('.gallery-video-container').forEach(v => v.remove());
-        }
-
         galleryGrid.style.display = 'none';
 
         const selectedVideo = this._getSelectedVideo(videos);
@@ -827,25 +838,23 @@ class IndexMapper extends BaseDataMapper {
                 bgImg.src = ImageHelpers.EMPTY_IMAGE_WITH_ICON;
                 bgImg.classList.add('empty-image-placeholder');
             }
-        } else {
-            if (bgImg) bgImg.style.display = '';
-            if (bgImg) {
-                const selectedImages = (closingData?.images || [])
-                    .filter(img => img.isSelected === true)
-                    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        } else if (bgImg) {
+            bgImg.style.display = '';
+            const selectedImages = (closingData?.images || [])
+                .filter(img => img.isSelected === true)
+                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-                if (selectedImages.length > 0) {
-                    bgImg.src = selectedImages[0].url;
-                    bgImg.classList.remove('empty-image-placeholder');
-                } else if (isDemo) {
-                    bgImg.src = './images/sky.jpg';
-                    bgImg.classList.remove('empty-image-placeholder');
-                } else {
-                    bgImg.src = ImageHelpers.EMPTY_IMAGE_WITH_ICON;
-                    bgImg.classList.add('empty-image-placeholder');
-                }
-                bgImg.alt = 'Closing Background';
+            if (selectedImages.length > 0) {
+                bgImg.src = selectedImages[0].url;
+                bgImg.classList.remove('empty-image-placeholder');
+            } else if (isDemo) {
+                bgImg.src = './images/sky.jpg';
+                bgImg.classList.remove('empty-image-placeholder');
+            } else {
+                bgImg.src = ImageHelpers.EMPTY_IMAGE_WITH_ICON;
+                bgImg.classList.add('empty-image-placeholder');
             }
+            bgImg.alt = 'Closing Background';
         }
 
         // 숙소 영문명 매핑 (customFields 우선, 굵은 세로 텍스트)

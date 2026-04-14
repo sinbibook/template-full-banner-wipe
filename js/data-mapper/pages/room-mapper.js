@@ -602,15 +602,13 @@ class RoomMapper extends BaseDataMapper {
         // 체크인 (시스템 데이터)
         const roomCheckin = this.safeSelect('[data-room-checkin]');
         if (roomCheckin) {
-            const checkinTime = this.data.property?.checkinTime || '15:00';
-            roomCheckin.textContent = checkinTime;
+            roomCheckin.textContent = room.timeSettings?.checkin || '-';
         }
 
         // 체크아웃 (시스템 데이터)
         const roomCheckout = this.safeSelect('[data-room-checkout]');
         if (roomCheckout) {
-            const checkoutTime = this.data.property?.checkoutTime || '11:00';
-            roomCheckout.textContent = checkoutTime;
+            roomCheckout.textContent = room.timeSettings?.checkout || '-';
         }
 
         // 객실 이용규칙/안내사항 (시스템 데이터)

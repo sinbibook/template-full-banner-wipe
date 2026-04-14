@@ -14,19 +14,7 @@ class ScrollAnimations {
         this.init();
     }
 
-    init() {
-        // CSS 애니메이션이 로드되었는지 확인
-        this.ensureAnimationStyles();
-    }
-
-    /**
-     * 애니메이션 CSS가 로드되었는지 확인
-     */
-    ensureAnimationStyles() {
-        if (!document.querySelector('.scroll-animation-ready')) {
-            console.warn('Animation styles not loaded yet');
-        }
-    }
+    init() {}
 
     /**
      * 설정 배열로 여러 애니메이션 등록

@@ -209,6 +209,13 @@
                 "images": [],
                 "videos": []
               },
+              "signature": {
+                "title": "시그니처 섹션 타이틀",
+                "description": "시그니처 섹션 설명",
+                "mediaType": "image",
+                "images": [],
+                "videos": []
+              },
               "closing": {
                 "title": "마무리 섹션 타이틀",
                 "description": "마무리 섹션 설명",
